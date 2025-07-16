@@ -86,7 +86,7 @@ posterior_mean, X_em = em.run_em_algorithm(num_iterations, mask_em,
 # Predictive density
 predictive_mean = np.dot(X_em, posterior_mean)
 
-
+# Display output
 plt.plot(np.arange(N), y, 'go', alpha = 0.4)
 plt.plot(np.arange(N), mean_generative, 'b-')
 plt.plot(np.arange(N), predictive_mean, 'k-')

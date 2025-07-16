@@ -17,9 +17,9 @@ def obtain_posterior(xTx, xTy, prior_covariance, emission_variance_em):
     
     return posterior_mean, posterior_covariance
 
-def run_m_step(mask_em, y, X_em, prior_covariance, posterior_mean, posterior_covariance):
+def manage_sparsity(X_em, mask_em, prior_covariance, posterior_mean, posterior_covariance):
     
-    # ... sparse dimensions (reduced size)
+    # ... dimensions before sparsity
     N, M = X_em.shape
     
     # ... arrays (reduced size)
@@ -38,11 +38,10 @@ def run_m_step(mask_em, y, X_em, prior_covariance, posterior_mean, posterior_cov
         alpha_new[m] = gamma[m] / (posterior_mean[m] * posterior_mean[m])
         
         # ... test for sparsity
-        big_number = 1e6
+        big_number = 1e10
         
         if alpha_new[m] > big_number:
             
-            print("big number")
             alpha_new[m] = big_number
             gamma[m] = 0.0
             mask_em[m] = False
@@ -55,7 +54,14 @@ def run_m_step(mask_em, y, X_em, prior_covariance, posterior_mean, posterior_cov
     posterior_mean = posterior_mean[mask_em]
     alpha = alpha_new[mask_em]
     mask_em = mask_em[mask_em]
-        
+    
+    return N, sum_gamma, alpha, mask_em, X_em, posterior_mean
+
+def reestimate_parameter_values(y, X_em, sum_gamma, alpha, posterior_mean):
+    
+    # ... dimensions
+    N, _ = X_em.shape
+    
     # ... re-estimate the emission variance
     distance = y - np.dot(X_em, posterior_mean)
     distance_sq = np.dot(np.transpose(distance), distance)
@@ -65,6 +71,18 @@ def run_m_step(mask_em, y, X_em, prior_covariance, posterior_mean, posterior_cov
     # ... re-estimate the prior_covariance
     prior_covariance = np.diag(1 / alpha)
     
+    return prior_covariance, emission_variance
+
+def run_m_step(mask_em, y, X_em, prior_covariance, posterior_mean, posterior_covariance):
+    
+    # ... manage sparsity
+    N, sum_gamma, alpha, mask_em, X_em, posterior_mean = manage_sparsity(X_em, mask_em, 
+                                                                         prior_covariance, 
+                                                                         posterior_mean, posterior_covariance)
+    
+    # ... re-estimate parameter values
+    prior_covariance, emission_variance = reestimate_parameter_values(y, X_em, sum_gamma, alpha, posterior_mean)
+
     return prior_covariance, emission_variance, mask_em, X_em, posterior_mean
     
 
